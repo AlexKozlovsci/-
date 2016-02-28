@@ -11,56 +11,70 @@ using System.Threading;
 public class server
 {
 
-    public static void Callback(IAsyncResult AsyncCall)
+
+    public static void startListen()
     {
-        System.Text.ASCIIEncoding encoding = new System.Text.ASCIIEncoding();
-        Byte[] busy = encoding.GetBytes("Server is busy");
+        Console.WriteLine("Input your IP address");
+        IPAddress ipAddr = IPAddress.Parse(Console.ReadLine());
+        IPEndPoint ipep = new IPEndPoint(ipAddr, 10500);
 
-        Socket server = (Socket)AsyncCall.AsyncState;
-        Socket client = server.EndAccept(AsyncCall);
+        Socket servSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-        Console.WriteLine("Accepted the connection: {0}", client.RemoteEndPoint);
-        client.Send(busy);
-
-        Console.WriteLine("Close connection");
-        client.Close();
-
-        server.BeginAccept(new AsyncCallback(Callback), server);
-       
-    }
-    public static void startSend()
-    {
         try
         {
-            IPAddress localAddress = IPAddress.Parse("127.0.0.1");
-            var servSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint ipep = new IPEndPoint(localAddress, 10500);
             servSock.Bind(ipep);
             servSock.Listen(10);
-            servSock.BeginAccept(new AsyncCallback(Callback), servSock);
-            Console.WriteLine("Waiting for connection {0}", servSock.LocalEndPoint);
-
             while (true)
             {
-                Console.WriteLine("busy...");
-                Thread.Sleep(2000);
-            }
+                Console.WriteLine("Waiting the connection {0}", ipep);
+              
+                Socket handler = servSock.Accept();
+                string data = null;
 
+                byte[] bytes = new byte[1024];
+                int bytesRec = handler.Receive(bytes);
+
+                data += Encoding.UTF8.GetString(bytes, 0, bytesRec);
+
+                
+                Console.Write("Received message: " + data + "\n\n");
+
+                int count = 1;
+                for (int i = 0; i < data.Length; i++)
+                {
+                    if (data[i] == ' ')  
+                        count++;
+                }
+                
+                string reply = "In your message " + count.ToString()
+                        + " words";
+                byte[] msg = Encoding.UTF8.GetBytes(reply);
+                handler.Send(msg);
+
+                if (data == "<TheEnd>")
+                {
+                    Console.WriteLine("End connection.");
+                }
+
+                handler.Shutdown(SocketShutdown.Both);
+                handler.Close();
+
+            }
         }
         catch (Exception e)
         {
-           
-            Console.WriteLine("Error : {0}", e.ToString());
+            Console.WriteLine(e.ToString());
         }
         finally
         {
+            servSock.Close();
             Console.ReadLine();
         }
     }
 
     public static int Main()
     {
-        startSend();
+        startListen();
         return 0;
     }
 }

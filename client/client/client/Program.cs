@@ -13,7 +13,9 @@ public class client
     {
         try
         {
-            SendMessageFromSocket(10500);
+            Console.WriteLine("Input server IP address");
+            IPAddress ipAddr = IPAddress.Parse(Console.ReadLine());
+            SendMessageFromSocket(10500, ipAddr);
         }
         catch (Exception e)
         {
@@ -25,18 +27,18 @@ public class client
         }
     }
 
-    public static void SendMessageFromSocket(int port)
+    public static void SendMessageFromSocket(int port, IPAddress ipAddr)
     {
         byte[] data = new byte[1024];
 
-        IPAddress ipAddr = IPAddress.Parse("127.0.0.1");
+        
         IPEndPoint ipep = new IPEndPoint(ipAddr, port);
 
         Socket clientSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
        
         clientSock.Connect(ipep);
-
-        Console.WriteLine("Input message: ");
+        
+        Console.WriteLine("Input message (<TheEnd> for end connection): ");
         string message = Console.ReadLine();
 
         Console.WriteLine("Connection with {0} ", clientSock.RemoteEndPoint.ToString());
@@ -48,8 +50,8 @@ public class client
 
         Console.WriteLine("\nAnswer: {0}\n\n", Encoding.UTF8.GetString(data, 0, bytesRec));
 
-        if (message.IndexOf("TheEnd") == -1)
-            SendMessageFromSocket(port);
+        if (message.IndexOf("<TheEnd>") == -1)
+            SendMessageFromSocket(port, ipAddr);
 
         clientSock.Shutdown(SocketShutdown.Both);
         clientSock.Close();
